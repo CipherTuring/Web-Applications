@@ -1,0 +1,55 @@
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+  border-radius: var(--radius);
+  overflow: hidden;
+  font-size: 0.9rem;
+}
+
+th, td {
+  border: 1px solid #000;
+  padding: 0.5rem;
+  text-align: center;
+}
+
+thead th,
+tr > th:first-child {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+td:empty {
+  background: var(--color-bg);
+}
+
+/* Colores por curso */
+td.cryptography {
+  background: #fde2e2;
+  font-weight: 600;
+}
+
+td.web-apps {
+  background: #e2f0fd;
+  font-weight: 600;
+}
+
+td.distributed {
+  background: #e6f7e2;
+  font-weight: 600;
+}
+
+td.machine-learning {
+  background: #fdf3e2;
+  font-weight: 600;
+}
+
+@media (max-width: 700px) {
+  table {
+    font-size: 0.75rem;
+  }
+  th, td {
+    padding: 0.3rem;
+  }
+}
