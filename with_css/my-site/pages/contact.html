@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Contact</title>
+</head>
+<body>
+
+    <header>
+        <h1>My University Website</h1>
+    </header>
+
+    <nav>
+        <a href="../index.html">Home</a>
+        <a href="courses.html">Courses</a>
+        <a href="schedule.html">Schedule</a>
+        <a href="hobbies.html">Hobbies</a>
+        <a href="clubs.html">Clubs</a>
+        <a href="contact.html">Contact</a>
+    </nav>
+
+    <main>
+        <h2>Contact Me</h2>
+        <p>If you want to talk to me for any reason, please fill the following form ;)</p>
+
+        <form>
+
+            <p>
+                <label for="fullname">Full Name:</label><br>
+                <input type="text" id="fullname" name="fullname" required>
+            </p>
+
+            <p>
+                <label for="email">Email Address:</label><br>
+                <input type="email" id="email" name="email" required>
+            </p>
+
+            <p>
+                <label for="birthdate">Date of Birth:</label><br>
+                <input type="date" id="birthdate" name="birthdate" required>
+            </p>
+
+            <p>
+                <label for="program">Degree Program:</label><br>
+                <input type="text" id="program" name="program" value="Computer Science">
+            </p>
+
+            <p>
+                <label for="semester">Semester:</label><br>
+                <select id="semester" name="semester">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6" selected>6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                </select>
+            </p>
+
+            <p>
+                <label for="reason">Reason for Contact:</label><br>
+                <select id="reason" name="reason">
+                    <option value="academic">Academic question</option>
+                    <option value="collaboration">Project collaboration</option>
+                    <option value="event">IEEE ComSoc event</option>
+                    <option value="other">Other</option>
+                </select>
+            </p>
+
+            <p>
+                <label for="message">Message:</label><br>
+                <textarea id="message" name="message" rows="5" cols="40" required></textarea>
+            </p>
+
+            <p>
+                <input type="checkbox" id="accept" name="accept" required>
+                <label for="accept">I accept that my data will be used to respond to this message.</label>
+            </p>
+
+            <p>
+                <input type="submit" value="Send Message">
+            </p>
+
+        </form>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Ismael - Yachay Tech University</p>
+    </footer>
+
+</body>
+</html>
