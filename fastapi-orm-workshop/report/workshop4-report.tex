@@ -1,0 +1,923 @@
+% =====================================================================
+%  Workshop 4 -- ORM with FastAPI, SQLAlchemy and MySQL
+%  Web Applications -- Semester II 2026
+%
+%  COMO USAR ESTE ARCHIVO (leeme):
+%
+%  1. Este .tex compila TAL CUAL, sin ninguna imagen. Donde va cada
+%     captura aparece una caja gris con el nombre del archivo que
+%     espera y la descripcion de lo que debe mostrar.
+%
+%  2. Para insertar una captura NO hay que editar nada: basta con
+%     guardar la imagen dentro de la carpeta  img/  con el nombre
+%     exacto que indica la caja gris (por ejemplo  img/fig01-show-tables.png ).
+%     Al recompilar, la caja se reemplaza sola por la imagen.
+%     Se aceptan las extensiones .png, .jpg, .jpeg y .pdf.
+%
+%  3. Los datos, salidas y SQL que aparecen en el documento son los
+%     reales de la ejecucion del taller, no inventados.
+%
+%  4. Compilar con pdfLaTeX (Overleaf: New Project -> Upload Project,
+%     subiendo este .tex y la carpeta img/).
+% =====================================================================
+
+\documentclass[10pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage[margin=2.1cm]{geometry}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+
+\setlist{nosep,leftmargin=1.1cm}
+\setlength{\parskip}{0.35em}
+
+% ---------------------------------------------------------------------
+%  Colores y estilos de codigo
+% ---------------------------------------------------------------------
+\definecolor{codebg}{RGB}{248,248,250}
+\definecolor{codeframe}{RGB}{212,212,218}
+\definecolor{codekey}{RGB}{0,84,166}
+\definecolor{codestr}{RGB}{163,21,21}
+\definecolor{codecom}{RGB}{106,115,125}
+\definecolor{phfill}{RGB}{246,246,248}
+\definecolor{phline}{RGB}{170,170,178}
+
+\lstdefinestyle{base}{
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{codeframe},
+  basicstyle=\ttfamily\scriptsize,
+  keywordstyle=\color{codekey}\bfseries,
+  stringstyle=\color{codestr},
+  commentstyle=\color{codecom}\itshape,
+  showstringspaces=false,
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  xleftmargin=5pt,
+  xrightmargin=5pt,
+  aboveskip=6pt,
+  belowskip=6pt,
+}
+
+\lstdefinestyle{py}{style=base,language=Python}
+\lstdefinestyle{sql}{style=base,language=SQL,morekeywords={DISTINCT,INNER}}
+\lstdefinestyle{sh}{style=base,language=bash}
+\lstdefinestyle{plain}{style=base,language=}
+\lstset{style=plain}
+
+% ---------------------------------------------------------------------
+%  Marcador de figura: si la imagen existe la inserta, si no dibuja
+%  una caja vacia con la descripcion de la captura que falta.
+% ---------------------------------------------------------------------
+\newcommand{\phbox}[4]{%
+  \begingroup
+  \setlength{\fboxsep}{0pt}%
+  \fcolorbox{phline}{phfill}{%
+    \begin{minipage}[c][#2][c]{\dimexpr#1-2\fboxrule\relax}
+      \centering
+      {\ttfamily\scriptsize\color{phline}[ img/#3 ]}\\[0.7em]
+      \begin{minipage}{0.88\linewidth}
+        \centering\scriptsize\itshape #4
+      \end{minipage}
+    \end{minipage}%
+  }%
+  \endgroup
+}
+
+% #1 ancho  #2 alto de la caja  #3 nombre base del archivo  #4 descripcion
+\newcommand{\shot}[4]{%
+  \IfFileExists{img/#3.png}{\includegraphics[width=#1]{img/#3.png}}{%
+  \IfFileExists{img/#3.jpg}{\includegraphics[width=#1]{img/#3.jpg}}{%
+  \IfFileExists{img/#3.jpeg}{\includegraphics[width=#1]{img/#3.jpeg}}{%
+  \IfFileExists{img/#3.pdf}{\includegraphics[width=#1]{img/#3.pdf}}{%
+  \phbox{#1}{#2}{#3}{#4}}}}}%
+}
+
+\captionsetup{font=small,labelfont=bf,skip=4pt}
+
+% ---------------------------------------------------------------------
+
+\title{\vspace{-1.4cm}\textbf{Workshop 4}\\[0.2em]
+\large ORM with FastAPI, SQLAlchemy and MySQL}
+\author{Ismael Paredes\\[0.1em]
+\normalsize Web Applications --- Semester II 2026 --- Prof. Francisco Hidrobo}
+\date{September 19, 2026}
+
+\begin{document}
+
+\maketitle
+\vspace{-0.8cm}
+
+\section{General Information}
+
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabular}{@{}ll@{\hspace{2cm}}ll@{}}
+\toprule
+Student & Ismael Paredes & Python & 3.12.10 \\
+Course & Web Applications --- Sem. II 2026 & MySQL Server & 8.0.46 \\
+Workshop & No. 4 --- ORM with FastAPI & SQLAlchemy & 2.0.54 (PyMySQL 1.2.3) \\
+Date & September 19, 2026 & FastAPI & 0.141.1 (Uvicorn 0.53.0) \\
+OS & Windows 11 Home (10.0.26200) & Database & \texttt{orm\_workshop} / \texttt{ormuser} \\
+\bottomrule
+\end{tabular}
+\end{table}
+\vspace{-0.3cm}
+\noindent\footnotesize Repository: \url{https://github.com/CipherTuring/Web-Applications}\normalsize
+
+\section{Objective}
+
+The goal is to build a REST API that stores and retrieves information from a
+relational database \emph{without writing SQL by hand}.
+
+An \textbf{Object-Relational Mapper (ORM)} maps two worlds that do not
+naturally fit together: the object world of Python (classes, instances,
+attributes, references between objects) and the relational world of MySQL
+(tables, rows, columns, foreign keys). SQLAlchemy defines that correspondence
+once, in the model classes, and from then on the program manipulates ordinary
+Python objects: creating an instance, assigning an attribute, appending to a
+list or handing an object to \texttt{db.delete()}. The \texttt{INSERT},
+\texttt{UPDATE} and \texttt{DELETE} statements that reach MySQL are generated
+by the ORM. The schema itself is never written as SQL either: the four tables
+were created directly from the Python classes.
+
+\noindent
+\begin{minipage}[t]{0.42\textwidth}
+\begin{lstlisting}[style=plain]
+Python Client / curl
+        |
+        | HTTP + JSON
+        v
+     FastAPI
+        |
+        | SQLAlchemy ORM
+        v
+      MySQL
+\end{lstlisting}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.55\textwidth}
+\vspace{0.3cm}
+\textbf{FastAPI} exposes the HTTP endpoints and validates the JSON crossing the
+boundary. \textbf{SQLAlchemy} maps classes to tables, tracks the changes made to
+the loaded objects and emits the SQL. \textbf{MySQL} stores the data and
+enforces the foreign keys. The Python client is a separate program that knows
+nothing about the ORM or the database: only URLs and JSON.
+
+The application models an order system with four related entities:
+\texttt{Customer}, \texttt{Order}, \texttt{OrderItem} and \texttt{Product}.
+\end{minipage}
+
+\section{Database and ORM Model}
+
+\noindent
+\begin{minipage}[t]{0.40\textwidth}
+\begin{lstlisting}[style=plain]
+Customer
+   |
+   +----< Order
+             |
+             +----< OrderItem >---- Product
+\end{lstlisting}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.57\textwidth}
+\vspace{0.2cm}
+\footnotesize
+Every entity uses an auto-increment \texttt{id} as primary key. The foreign
+keys are \texttt{orders.customer\_id}, \texttt{order\_items.order\_id} and
+\texttt{order\_items.product\_id}. \texttt{OrderItem} is the association
+between an order and a product.
+\normalsize
+\end{minipage}
+
+\begin{table}[H]
+\centering\footnotesize
+\begin{tabular}{@{}p{2.1cm}p{5.4cm}p{8.2cm}@{}}
+\toprule
+\textbf{Entity} & \textbf{Purpose and attributes} & \textbf{Relationships} \\
+\midrule
+\texttt{Customer} & Places orders. \texttt{name}, \texttt{email}
+(\texttt{unique=True}) &
+One-to-many with \texttt{Order} (\texttt{orders}), \textbf{cascade}
+\texttt{all, delete-orphan} \\
+\addlinespace
+\texttt{Order} & A purchase. \texttt{order\_date} (default today),
+\texttt{status} (default \texttt{pending}) &
+Belongs to one \texttt{Customer}; one-to-many with \texttt{OrderItem}
+(\texttt{items}), \textbf{cascade} \texttt{all, delete-orphan} \\
+\addlinespace
+\texttt{OrderItem} & One line of an order. \texttt{quantity},
+\texttt{unit\_price} &
+Belongs to one \texttt{Order}, references one \texttt{Product} \\
+\addlinespace
+\texttt{Product} & Catalogue item. \texttt{name}, \texttt{price},
+\texttt{stock} &
+One-to-many with \texttt{OrderItem}, \textbf{no cascade} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\texttt{unit\_price} is stored on the item deliberately: it is a snapshot of the
+price at the moment of the purchase, so a later price change does not rewrite
+the history of past orders.
+
+\begin{table}[H]
+\centering\footnotesize
+\begin{tabular}{@{}p{3.2cm}p{12.6cm}@{}}
+\toprule
+\textbf{Construct} & \textbf{Purpose in this implementation} \\
+\midrule
+\texttt{ForeignKey} & Declares the link at the \emph{database} level; it is what
+MySQL enforces and what appears as a \texttt{MUL} key. It works with values:
+\texttt{orders.customer\_id} holds an integer. \\
+\texttt{relationship()} & Declares the link at the \emph{object} level:
+\texttt{order.customer} returns a \texttt{Customer}, \texttt{order.items} a list
+of \texttt{OrderItem}. It turns a join into attribute access. \\
+\texttt{back\_populates} & Pairs two \texttt{relationship()} declarations as the
+two sides of one link and keeps them in sync: appending to \texttt{order.items}
+also sets \texttt{item.order}. \\
+\texttt{cascade="all,} \texttt{delete-orphan"} & Propagates session operations
+from parent to children (\texttt{all}) and deletes a child removed from the
+parent's collection (\texttt{delete-orphan}). \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Exactly two relationships use cascade: \texttt{Customer.orders} and
+\texttt{Order.items}. \texttt{Product.order\_items} deliberately does not. The
+criterion is ownership: an order \emph{owns} its items and a customer
+\emph{owns} their orders, whereas an item only \emph{references} a product that
+exists independently in the catalogue.
+
+The four tables were never written as SQL. They were generated by
+\texttt{Base.metadata.create\_all(bind=engine)}, which inspects the model
+classes at start-up and issues the \texttt{CREATE TABLE} statements.
+
+\begin{figure}[H]
+\centering
+\shot{0.62\textwidth}{4cm}{fig01-show-tables}{%
+Screenshot of the MySQL console after \texttt{mysql -u ormuser -p orm\_workshop}
+running \texttt{SHOW TABLES;}. Must show the four tables: \texttt{customers},
+\texttt{order\_items}, \texttt{orders}, \texttt{products}.}
+\caption{The four tables created from the ORM classes.}
+\label{fig:show-tables}
+\end{figure}
+
+\section{CRUD Operations}
+
+\begin{table}[H]
+\centering\footnotesize
+\begin{tabular}{@{}lllll@{}}
+\toprule
+\textbf{Operation} & \textbf{Method} & \textbf{Customer endpoint} &
+\textbf{Product endpoint} & \textbf{ORM operation} \\
+\midrule
+Create & POST & \texttt{/customers} & \texttt{/products} & \texttt{db.add()} \\
+List & GET & \texttt{/customers} & \texttt{/products} & \texttt{select()} \\
+Find & GET & \texttt{/customers/\{id\}} & \texttt{/products/\{id\}} & \texttt{db.get()} \\
+Update & PUT & \texttt{/customers/\{id\}} & \texttt{/products/\{id\}} & modify object + \texttt{commit()} \\
+Delete & DELETE & \texttt{/customers/\{id\}} & \texttt{/products/\{id\}} & \texttt{db.delete()} \\
+\bottomrule
+\end{tabular}
+\caption{CRUD implemented identically for \texttt{Customer} and
+\texttt{Product}.}
+\end{table}
+
+None of the four operations contains SQL:
+
+\begin{lstlisting}[style=py]
+customer = models.Customer(name=data.name, email=data.email)   # create
+db.add(customer); db.commit(); db.refresh(customer)
+
+result = db.execute(select(models.Customer))                   # list
+customer = db.get(models.Customer, customer_id)                # find by pk
+
+customer.name = data.name                                      # update
+db.commit()
+
+db.delete(customer); db.commit()                               # delete
+\end{lstlisting}
+
+Three customers were created (Alice Brown, John Smith, Maria Lopez); customer 2
+was renamed to ``John Anderson'' and customer 3 was deleted, leaving customers 1
+and 2. Four products were created --- Mechanical Keyboard (85.50, stock 20),
+Wireless Mouse (28.50, 40), USB-C Hub (42.00, 15) and Webcam (65.00, 10) ---
+and the stock of product 3 was updated from 15 to 25.
+
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.49\textwidth}\centering
+\shot{\textwidth}{4.6cm}{fig02-crud-curl}{%
+Terminal with the \texttt{curl} commands: the \texttt{POST /customers} creating
+Alice Brown with its JSON answer and generated \texttt{id}, and the
+\texttt{PUT /customers/2} renaming John with its answer.}
+\end{minipage}\hfill
+\begin{minipage}{0.49\textwidth}\centering
+\shot{\textwidth}{4.6cm}{fig03-crud-mysql}{%
+MySQL console running \texttt{SELECT * FROM customers;} and
+\texttt{SELECT * FROM products;}: customers 1 and 2 (John already renamed,
+Maria absent) and the four products with the USB-C Hub stock at 25.}
+\end{minipage}
+\caption{Left: creation and update through the API. Right: the same
+information stored in MySQL.}
+\label{fig:crud}
+\end{figure}
+
+\subsection*{Why the program never executes \texttt{INSERT}, \texttt{UPDATE} or
+\texttt{DELETE}}
+
+The session acts as a \emph{unit of work}. When an object is loaded or added,
+the session keeps a reference to it and a record of its original state; every
+later assignment is detected by comparison against that state (dirty tracking).
+Nothing is sent at the moment of the assignment. On \texttt{db.commit()} the
+session flushes: it collects every new, modified and deleted object, sorts the
+operations so that foreign-key dependencies are respected, translates them into
+SQL and sends them inside one transaction. That is why
+\texttt{customer.name = data.name} followed by \texttt{db.commit()} is enough:
+the session noticed that only \texttt{name} changed and produced an
+\texttt{UPDATE} affecting only that column. With \texttt{echo=True} the
+translation stops being invisible --- every generated statement is printed in
+the Uvicorn terminal with its parameters (see Figure~\ref{fig:update-sql}). The
+SQL exists; it is simply not written by the programmer.
+
+\section{Relationships and Nested Insert}
+
+A single \texttt{POST /orders} creates one \texttt{Order} and all of its
+\texttt{OrderItem} rows. The body sent was
+\texttt{\{"customer\_id": 1, "items": [\{"product\_id": 1, "quantity": 2\},
+\{"product\_id": 2, "quantity": 1\}, \{"product\_id": 3, "quantity": 3\}]\}}.
+The endpoint never assigns a foreign key; it builds objects and links them:
+
+\begin{lstlisting}[style=py]
+order = models.Order(customer=customer, status="pending")   # sets orders.customer_id
+
+for item_data in data.items:
+    product = db.get(models.Product, item_data.product_id)
+    item = models.OrderItem(product=product,                # sets order_items.product_id
+                            quantity=item_data.quantity,
+                            unit_price=product.price)
+    order.items.append(item)                                # sets order_items.order_id
+
+db.add(order)                                               # cascades to the items
+db.commit()
+\end{lstlisting}
+
+\begin{itemize}
+\item Passing \texttt{customer=customer} and \texttt{product=product} associates
+\emph{objects}; the ORM records that the corresponding foreign-key columns must
+later receive their \texttt{id} values.
+\item \texttt{order.items.append(item)} also sets \texttt{item.order}, because
+the relationship declares \texttt{back\_populates}, and therefore determines
+\texttt{order\_items.order\_id}.
+\item \texttt{db.add(order)} adds only the order, but the cascade propagates the
+operation to every item.
+\item At \texttt{db.commit()} the order still has no \texttt{id}: it is an
+\texttt{AUTO\_INCREMENT} generated by MySQL. SQLAlchemy therefore sorts the
+inserts by dependency --- first the row in \texttt{orders}, then it reads back
+the generated \texttt{id}, and only then the rows in \texttt{order\_items} using
+that value. The programmer never handles that identifier.
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\shot{0.66\textwidth}{5cm}{fig04-nested-insert-mysql}{%
+MySQL console running \texttt{SELECT * FROM orders;} and
+\texttt{SELECT * FROM order\_items;} right after creating the order. Must show
+one row in \texttt{orders} (id 1, \texttt{customer\_id} 1) and three rows in
+\texttt{order\_items}, all with \texttt{order\_id} = 1 and \texttt{product\_id}
+1, 2 and 3 --- the foreign keys the program never assigned by hand.}
+\caption{One order and its three items, created by a single request.}
+\label{fig:nested-insert}
+\end{figure}
+
+\section{Nested Queries}
+
+The two nested endpoints, \texttt{GET /orders/\{order\_id\}} and
+\texttt{GET /customers/\{customer\_id\}/orders}, are implemented in two lines
+--- \texttt{order = db.get(models.Order, order\_id)} followed by
+\texttt{return order}. A single object is returned; the nesting is produced by
+the response schema walking the relationships. This is the real answer of
+\texttt{GET /customers/1/orders}, abbreviated to the first item:
+
+\noindent
+\begin{minipage}[t]{0.54\textwidth}
+\begin{lstlisting}[style=plain]
+{
+    "id": 1, "name": "Alice Brown",
+    "email": "alice@example.com",
+    "orders": [
+        { "id": 1, "order_date": "2026-09-19",
+          "status": "pending",
+          "items": [
+            { "id": 1, "quantity": 2,
+              "unit_price": "85.50",
+              "product": {
+                  "id": 1,
+                  "name": "Mechanical Keyboard",
+                  "price": "85.50", "stock": 18 }
+            } ]
+        } ]
+}
+\end{lstlisting}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.43\textwidth}
+\vspace{0.2cm}
+\begin{lstlisting}[style=plain]
+Customer         <- CustomerWithOrders
++-- Order        <- CustomerOrder
+    +-- OrderItem<- OrderItemResponse
+        +-- Product  <- ProductResponse
+\end{lstlisting}
+\footnotesize
+Four levels out of four separate tables, from one endpoint call.
+\normalsize
+\end{minipage}
+
+This works because of two mechanisms. The \texttt{relationship()} declarations
+turn what in SQL would be a join into attribute access, and those relationships
+are loaded lazily: the moment the schema reads \texttt{customer.orders} the
+session issues the necessary \texttt{SELECT}, and reading \texttt{item.product}
+triggers another. The Pydantic schemas declare the nested shape with
+\texttt{from\_attributes=True}, which lets them read from ORM objects. This is
+where the split between the two kinds of class pays off: the tables stay flat
+and normalised while the API exposes a nested document, and neither has to give
+in to the other.
+
+\section{Update and Cascade Delete}
+
+The status of order 1 was changed from \texttt{pending} to \texttt{processing}
+with \texttt{order.status = data.status} followed by \texttt{db.commit()}. The
+statement observed in the SQLAlchemy output was:
+
+\begin{lstlisting}[style=sql]
+UPDATE orders SET status=%(status)s WHERE orders.id = %(orders_id)s
+[generated in 0.00099s] {'status': 'processing', 'orders_id': 1}  -->  COMMIT
+\end{lstlisting}
+
+Three decisions in that statement were taken by the ORM, not by the program.
+\textbf{Which row:} the object came from \texttt{db.get()}, so the session knows
+its identity and writes the \texttt{WHERE orders.id = ...} clause itself.
+\textbf{Which column:} only \texttt{status} appears in \texttt{SET}, because no
+change was detected in the others. \textbf{When:} the assignment alone sends
+nothing; the statement is emitted during the flush triggered by
+\texttt{db.commit()}. The parameters travel separately from the statement
+(\texttt{\%(status)s} is a placeholder), which is what prevents SQL injection.
+
+\begin{figure}[H]
+\centering
+\shot{0.78\textwidth}{4.2cm}{fig05-update-sql}{%
+Uvicorn terminal at the moment of the status update. Must show the
+\texttt{UPDATE orders SET status=\%(status)s WHERE orders.id =
+\%(orders\_id)s} line, the parameter line
+\texttt{\{'status': 'processing', 'orders\_id': 1\}} and the \texttt{COMMIT}.}
+\caption{\texttt{UPDATE} generated by a single attribute assignment.}
+\label{fig:update-sql}
+\end{figure}
+
+Order 1, which had three items, was then deleted with \texttt{db.delete(order)}
+and \texttt{db.commit()}. The outcome was: \textbf{(1)} the \texttt{Order} was
+deleted and \texttt{orders} was left empty; \textbf{(2)} its three
+\texttt{OrderItem} objects were deleted as well, without the program mentioning
+them, leaving \texttt{order\_items} empty; \textbf{(3)} the four
+\texttt{Product} objects remained untouched, with their stock values unchanged
+(18, 39, 22 and 10).
+
+The items disappeared and the products survived because only
+\texttt{Order.items} declares \texttt{cascade="all, delete-orphan"}: the
+deletion propagates from the order to its items, and SQLAlchemy issues the
+\texttt{DELETE} on \texttt{order\_items} first and only then the one on
+\texttt{orders}, which is also the order the foreign key requires.
+\texttt{Product.order\_items} declares no cascade, so nothing propagates towards
+the products.
+
+The underlying reason is semantic. An order item has no independent existence:
+``two units of a keyboard'' means nothing outside the order containing it. A
+product does: the keyboard stays in the catalogue, available to be sold again,
+regardless of how many past orders referenced it. Cascading to products would
+destroy the catalogue --- exactly the accident its absence prevents.
+
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.49\textwidth}\centering
+\shot{\textwidth}{4.6cm}{fig06-cascade-before}{%
+\textbf{Before} the deletion: \texttt{SELECT * FROM orders;},
+\texttt{SELECT * FROM order\_items;} and
+\texttt{SELECT id, name, stock FROM products;}. Must show order 1, its three
+items and the four products.}
+\end{minipage}\hfill
+\begin{minipage}{0.49\textwidth}\centering
+\shot{\textwidth}{4.6cm}{fig07-cascade-after}{%
+\textbf{After} \texttt{DELETE /orders/1}, the same three queries:
+\texttt{orders} and \texttt{order\_items} both \texttt{Empty set}, while the
+four products are still there unchanged.}
+\end{minipage}
+\caption{Cascade delete: the items vanished, the products remained.}
+\label{fig:cascade}
+\end{figure}
+
+\section{Transactions and Rollback}
+
+The \texttt{POST /orders} endpoint was extended so that creating an order also
+updates the inventory:
+
+\begin{lstlisting}[style=py]
+try:
+    for item_data in data.items:
+        product = db.get(models.Product, item_data.product_id)
+        if product.stock < item_data.quantity:
+            raise HTTPException(400, detail=f"Insufficient stock for {product.name}")
+        product.stock -= item_data.quantity
+        order.items.append(models.OrderItem(product=product,
+                                            quantity=item_data.quantity,
+                                            unit_price=product.price))
+    db.add(order)
+    db.commit()
+except Exception:
+    db.rollback()
+    raise
+\end{lstlisting}
+
+\texttt{product.stock -= item\_data.quantity} modifies an object loaded by the
+session, so it is registered as a pending change exactly like the creation of
+the order and of its items. That is the key point: the three kinds of change
+accumulate in the same session and therefore belong to the same transaction.
+\texttt{db.commit()} flushes every pending change as SQL and confirms the
+transaction --- up to that moment nothing is durable, and it either succeeds
+completely or fails completely. \texttt{db.rollback()} discards the
+transaction, so a half-finished operation leaves no trace.
+
+\subsection*{Successful transaction}
+
+An order was created for customer 2 with two units of product 1 and three of
+product 2. The stock of the purchased products decreased by exactly the
+requested quantities, in the same transaction that created the order; the other
+products were untouched.
+
+\subsection*{Failed transaction}
+
+An order was then requested with one unit of product 1 --- available --- and one
+thousand units of product 4, which was not. The answer was HTTP 400 with
+\texttt{\{"detail": "Insufficient stock for Webcam"\}}.
+
+\begin{table}[H]
+\centering\footnotesize
+\begin{tabular}{@{}lccc@{\hspace{1.4cm}}ccc@{}}
+\toprule
+& \multicolumn{3}{c}{\textbf{Successful transaction}} &
+\multicolumn{3}{c}{\textbf{Failed transaction}} \\
+\cmidrule(r){2-4}\cmidrule(l){5-7}
+\textbf{Product} & Before & Bought & After & Before & Requested & After \\
+\midrule
+1 --- Mechanical Keyboard & 18 & 2 & \textbf{16} & 16 & 1 (processed) & \textbf{16} \\
+2 --- Wireless Mouse & 39 & 3 & \textbf{36} & 36 & --- & 36 \\
+3 --- USB-C Hub & 22 & --- & 22 & 22 & --- & 22 \\
+4 --- Webcam & 10 & --- & 10 & 10 & 1000 (rejected) & 10 \\
+\bottomrule
+\end{tabular}
+\caption{Inventory before and after each transaction.}
+\end{table}
+
+The decisive observation is product 1. The loop processes items in order, so on
+reaching the second item it had \emph{already} executed
+\texttt{product.stock -= 1} for the keyboard: in memory its stock had gone from
+16 to 15. The database nevertheless still reported 16, and no new row appeared
+in \texttt{orders}.
+
+This is \textbf{atomicity}: a transaction is an indivisible unit that either
+happens entirely or not at all, with no valid intermediate state in which the
+customer is charged for a keyboard they never receive. Two things protected the
+data. The subtraction only modified an object in memory and marked it pending
+--- nothing had been written, because \texttt{db.commit()} was never reached, as
+the exception interrupted the loop first. And the \texttt{except} block called
+\texttt{db.rollback()}, discarding the transaction along with every pending
+change: the subtraction, the order and the item already appended to it.
+
+This is also why the whole loop must live in a single transaction. If each item
+were committed separately, the first commit would have made the subtraction on
+product 1 durable, and the later failure would have left the inventory
+permanently wrong, with one keyboard missing that nobody ever bought.
+
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.49\textwidth}\centering
+\shot{\textwidth}{4.6cm}{fig08-transaction-stock}{%
+Terminal showing, in order: the inventory \textbf{before}
+(\texttt{curl -s .../products | python -m json.tool}), the \texttt{POST /orders}
+for customer 2, and the inventory \textbf{after}. Stock of products 1 and 2
+visibly lower (18 to 16, 39 to 36).}
+\end{minipage}\hfill
+\begin{minipage}{0.49\textwidth}\centering
+\shot{\textwidth}{4.6cm}{fig09-rollback}{%
+The rollback experiment: inventory before, the \texttt{POST /orders} failing
+with \texttt{\{"detail": "Insufficient stock for Webcam"\}} (ideally with the
+HTTP 400 visible), and the inventory after. The stock of product 1 must be
+\textbf{the same} in both listings.}
+\end{minipage}
+\caption{Left: successful transaction. Right: failed transaction, with the
+partial change on product 1 rolled back.}
+\label{fig:transactions}
+\end{figure}
+
+\section{Independent Python Client and JSON}
+
+The purpose of the separate client is to show that the API is a real boundary
+and not an internal detail. The client imports neither SQLAlchemy nor the
+models; it does not know that MySQL exists, nor which tables there are. It could
+be rewritten in another language, or run on another machine, without a single
+line of the server changing. It communicates through the four HTTP methods:
+
+\begin{lstlisting}[style=py]
+requests.get(f"{BASE_URL}/customers")                                   # read
+requests.post(f"{BASE_URL}/customers", json=data)                       # create
+requests.put(f"{BASE_URL}/orders/{order_id}/status", json=data)         # update
+requests.delete(f"{BASE_URL}/orders/{order_id}")                        # delete
+\end{lstlisting}
+
+The \texttt{json=} argument serialises the Python dictionary to JSON and sets
+the \texttt{Content-Type} header; \texttt{response.json()} parses the answer
+back. The file \texttt{client/data/order.json} contains a complete nested order
+(customer 1 with three items), which the client reads and forwards:
+
+\begin{lstlisting}[style=py]
+with open(filename, "r", encoding="utf-8") as file:
+    data = json.load(file)
+response = requests.post(f"{BASE_URL}/orders", json=data)
+\end{lstlisting}
+
+\texttt{json.load()} returns a Python dictionary with the nested list of items
+already converted, and \texttt{requests.post()} serialises it back into the
+request body, so the file travels as the payload practically unchanged. On
+arrival FastAPI validates it against \texttt{OrderCreate}, which declares
+\texttt{items: list[OrderItemCreate]}, and the endpoint creates the order with
+its three items in one transaction. A file on disk thus becomes four rows across
+two tables, without the client knowing anything about that.
+
+\begin{figure}[H]
+\centering
+\shot{0.6\textwidth}{5cm}{fig10-client-menu}{%
+The Python client running (\texttt{python client/client.py}): the complete menu
+and the successful execution of at least one option --- for instance option 5,
+``Create order from JSON'', with its \texttt{HTTP: 200} line and the resulting
+order's JSON.}
+\caption{Independent Python client communicating with the API.}
+\label{fig:client}
+\end{figure}
+
+\section{Client/Server Test}
+
+The architecture allows the client and the API to run on different computers
+(\texttt{Python Client} on A, \texttt{FastAPI + ORM + MySQL} on B), and two
+changes are needed, one on each side.
+
+On the \textbf{client}, \texttt{BASE\_URL} must stop pointing at
+\texttt{http://127.0.0.1:8000}. The address \texttt{127.0.0.1} is the loopback
+interface and always means ``this same machine'', so a client on computer A
+using it would look for an API on computer A, where there is none. It must be
+replaced by the address of computer B on the local network, e.g.
+\texttt{http://192.168.1.50:8000}.
+
+On the \textbf{server}, Uvicorn must be started with \texttt{--host 0.0.0.0}.
+That is not an address anyone connects to: it means ``accept connections on
+every network interface of this machine''. With the default, Uvicorn binds only
+to loopback and any connection arriving from outside is refused before reaching
+the application, however correct the client's \texttt{BASE\_URL} may be. MySQL
+needs no change: it is only reached by the ORM, which runs on the same machine
+as the API, so the only connection crossing the network is the HTTP one.
+
+On this installation the server side was verified --- the process was confirmed
+to be listening on \texttt{0.0.0.0:8000} and the API answered through the
+machine's network address rather than loopback. The test with a second physical
+computer was not carried out, as it requires another machine on the same
+network.
+
+\section{Final Exercise}
+
+The endpoint \texttt{GET /products/\{product\_id\}/customers} returns every
+customer who purchased a given product (the client got a matching menu option
+calling the same URL):
+
+\begin{lstlisting}[style=py]
+@app.get("/products/{product_id}/customers",
+         response_model=list[schemas.CustomerResponse])
+def get_product_customers(product_id: int, db: Session = Depends(get_db)):
+
+    product = db.get(models.Product, product_id)
+    if product is None:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    statement = (select(models.Customer)
+                 .join(models.Customer.orders)
+                 .join(models.Order.items)
+                 .where(models.OrderItem.product_id == product_id)
+                 .distinct())
+
+    return db.execute(statement).scalars().all()
+\end{lstlisting}
+
+\noindent
+\begin{minipage}[t]{0.46\textwidth}
+\footnotesize\texttt{curl -s http://127.0.0.1:8000/products/1/customers\\
+| python -m json.tool}\normalsize
+\begin{lstlisting}[style=plain]
+[
+    { "id": 1, "name": "Alice Brown",
+      "email": "alice@example.com" },
+    { "id": 2, "name": "John Anderson",
+      "email": "john@example.com" }
+]
+\end{lstlisting}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.51\textwidth}
+\vspace{0.1cm}
+\footnotesize
+Both customers bought the Mechanical Keyboard: John in order 2 and Alice in
+order 3. As a contrast, \texttt{/products/4/customers} returns an empty list,
+because the Webcam was never sold successfully --- the only order that requested
+it is precisely the one that was rolled back.
+\normalsize
+\end{minipage}
+
+\medskip
+Customers and products are not directly connected: two tables lie between them
+(\texttt{Customer --< Order --< OrderItem >-- Product}).
+\texttt{.join(models.Customer.orders)} takes the first step, from
+\texttt{customers} to \texttt{orders}; \texttt{.join(models.Order.items)} takes
+the second, to \texttt{order\_items}. Both joins are expressed with a
+\emph{relationship} rather than an ON condition: the ORM already knows the
+linking columns and writes them itself. The \texttt{where} clause then keeps
+only the lines referring to the product. The fourth table is never joined,
+because \texttt{order\_items.product\_id} already holds the value being
+compared, which saves one join.
+
+\begin{lstlisting}[style=sql]
+SELECT DISTINCT customers.id, customers.name, customers.email
+FROM customers
+INNER JOIN orders ON customers.id = orders.customer_id
+INNER JOIN order_items ON orders.id = order_items.order_id
+WHERE order_items.product_id = %(product_id_1)s
+\end{lstlisting}
+
+\texttt{.distinct()} is necessary because a join multiplies rows: the result has
+one row \emph{per order item}, not per customer, with the customer's columns
+repeated in each. A customer who bought the same product in three orders would
+appear three times, and the same happens if one order contains two lines for the
+same product. \texttt{DISTINCT} collapses those duplicates into one entry per
+customer. The duplication is not a bug in the query --- it is the natural
+behaviour of a join, and \texttt{DISTINCT} is the standard way of adapting that
+result to a question asked about customers rather than about purchase lines.
+
+\begin{figure}[H]
+\centering
+\shot{0.6\textwidth}{4.2cm}{fig11-final-exercise}{%
+Terminal running \texttt{curl -s http://127.0.0.1:8000/products/1/customers |
+python -m json.tool} with its answer, the two customers. If it fits, include the
+call to \texttt{/products/4/customers} returning \texttt{[]}, which shows the
+endpoint does not simply list every customer.}
+\caption{Customers who purchased product 1.}
+\label{fig:final}
+\end{figure}
+
+\section{Discussion Questions}
+
+\begin{enumerate}[leftmargin=0.7cm]
+
+\item \textbf{What is an ORM, and what advantages does it provide over writing
+SQL directly?} A layer that maps classes to tables and instances to rows, so the
+program works with objects instead of result sets. The schema is defined once in
+the models and the tables are generated from it; relationships turn joins into
+attribute access, which is how a four-level nested response came out of a single
+\texttt{db.get()}; every query is parametrised by construction, removing a whole
+family of injection bugs; and the session groups changes into transactions,
+which made the rollback work almost for free. The price is a loss of control:
+the generated SQL is not always the one an expert would write, and problems such
+as the N+1 query pattern appear only when the \texttt{echo=True} output is
+actually read.
+
+\item \textbf{Difference between a SQLAlchemy model and a Pydantic schema?} They
+answer different questions. A model describes \emph{how data is stored}: tables,
+columns, SQL types, foreign keys. A schema describes \emph{how data travels}:
+the shape of the JSON the API accepts and returns. Separating them is what lets
+the tables stay flat while the API exposes a nested document, and lets the two
+differ on purpose --- \texttt{CustomerCreate} requires name and email,
+\texttt{CustomerUpdate} makes both optional, \texttt{CustomerResponse} adds the
+\texttt{id} that only exists after the insert.
+
+\item \textbf{Purpose of \texttt{db.commit()}?} To confirm the transaction. It
+first flushes --- translating every pending change into SQL and sending it in an
+order that respects foreign-key dependencies --- and then commits, which is the
+point at which the changes become durable and visible to other connections.
+Before that call, everything exists only in the session.
+
+\item \textbf{Why is \texttt{db.rollback()} important?} Because it guarantees
+that a failed operation leaves no trace. Without it the partial changes of an
+interrupted operation --- here, the stock already subtracted before the failure
+was detected --- would remain in the session and could be written by a later
+commit. It discards the transaction and returns the session to a clean state,
+which is what makes a failure safe.
+
+\item \textbf{How does SQLAlchemy represent a one-to-many relationship?} With
+two complementary pieces: a \texttt{ForeignKey} column on the many side
+(\texttt{orders.customer\_id}), which is the actual link in the database, and a
+pair of \texttt{relationship()} declarations joined by \texttt{back\_populates}
+(\texttt{Customer.orders} as a list, \texttt{Order.customer} as a single
+object), which give navigation in both directions and stay consistent when
+either is modified.
+
+\item \textbf{What does \texttt{cascade="all, delete-orphan"} accomplish?} It
+propagates session operations from a parent to its children. \texttt{all} makes
+operations such as \texttt{add} and \texttt{delete} reach the children --- which
+is why \texttt{db.add(order)} also saved its items and deleting the order also
+deleted them. \texttt{delete-orphan} adds a second rule: a child removed from
+the parent's collection is deleted, because it cannot exist on its own.
+
+\item \textbf{Why does deleting an Order remove its OrderItems but not its
+Products?} Because only \texttt{Order.items} declares a cascade, and that
+reflects ownership. An order owns its items: a line has no meaning outside the
+order containing it. An order only references products: the product exists
+independently, before the order and after it. Declaring the cascade on the
+product side would destroy part of the catalogue on every deletion.
+
+\item \textbf{What advantage does a nested insert provide?} It makes the whole
+operation a single unit in three senses: one request instead of one per item for
+the client; one transaction for the database, so an order can never be left
+without its items; and no intermediate identifiers for the programmer, since the
+order's \texttt{id} does not exist until the insert happens and SQLAlchemy reads
+it back and propagates it.
+
+\item \textbf{Why should an Order and its inventory changes be one
+transaction?} Because they describe a single business fact: this sale happened.
+Splitting them allows states no rule of the domain admits --- an order without
+its stock reserved, or stock subtracted for an order never recorded. In one
+transaction the alternatives are exactly two: either the order exists and the
+inventory reflects it, or nothing happened.
+
+\item \textbf{Role of FastAPI and role of SQLAlchemy?} FastAPI is the boundary
+facing the outside world: it receives HTTP requests, routes them, validates the
+JSON against the schemas, serialises the response and handles errors ---
+\texttt{HTTPException(400)} is what turned an insufficient-stock condition into
+a well-formed HTTP answer. SQLAlchemy is the boundary facing the database: it
+maps classes to tables, tracks changes, generates the SQL and manages the
+transaction. They never overlap: FastAPI knows nothing about SQL and SQLAlchemy
+nothing about HTTP. The endpoint functions are the thin layer where they meet.
+
+\end{enumerate}
+
+\section{Conclusions}
+
+\begin{enumerate}[leftmargin=0.7cm]
+
+\item \textbf{The ORM does not hide SQL, it generates it --- and the distinction
+matters.} Reading the \texttt{echo=True} output showed that behind
+\texttt{customer.name = "John Anderson"} there is an \texttt{UPDATE} touching
+exactly one column of one row, and that behind a nested insert there is an
+ordered sequence of statements with the generated identifier read back in
+between. The productive way to use an ORM is not to forget SQL but to know which
+SQL each object operation produces; otherwise it is impossible to notice, for
+instance, that the nested query triggers one \texttt{SELECT} per relationship
+traversed.
+
+\item \textbf{Relationships are where the object model stops being a copy of the
+tables.} The tables are flat and normalised, yet the response of
+\texttt{/customers/1/orders} has four levels of nesting, and nothing in the
+database changed to make that possible: it came from \texttt{relationship()}
+turning joins into attribute access and from the schemas describing the desired
+shape. Storage model and exposed model are two different designs, and separating
+them is what keeps each free to change.
+
+\item \textbf{Cascade is a modelling decision, not a configuration option.}
+Declaring \texttt{cascade="all, delete-orphan"} on \texttt{Order.items} and
+omitting it on \texttt{Product.order\_items} encodes which objects own others
+and which merely reference them. The delete experiment made the consequence
+visible: three items disappeared without being named while four products
+survived. Getting that decision wrong produces no error message --- it silently
+destroys data.
+
+\item \textbf{Atomicity is only visible when something fails.} The successful
+transaction proves little; committing each item separately would look identical.
+The failed one is where the design shows itself: the stock of product 1 had
+already been subtracted in memory when the exception was raised for product 4,
+and it still ended up unchanged in the database, because the subtraction never
+crossed a \texttt{commit()} and \texttt{rollback()} discarded it. What is
+protected is not the individual operation but the invariant connecting them: an
+order and its inventory effect are one fact.
+
+\item \textbf{The separation between API, ORM and client makes the system
+replaceable in parts.} The client never imports a model, never opens a session
+and does not know MySQL exists. Because of that, the same API answers through
+loopback and through the machine's network address, and moving the client to
+another computer requires changing exactly one constant. Each layer can be
+replaced without touching the others, and that is a direct consequence of none
+of them knowing the internals of its neighbours.
+
+\end{enumerate}
+
+\end{document}

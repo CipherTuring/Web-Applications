@@ -1,0 +1,431 @@
+% =====================================================================
+%  Workshop 6 -- Testing & CI/CD
+%  Web Applications -- Semester II 2026
+%
+%  ESQUELETO DEL REPORTE
+%
+%  1. Compila TAL CUAL, sin imagenes. Cada captura es una caja gris con
+%     el nombre del archivo que espera y la descripcion de lo que debe
+%     mostrar.
+%
+%  2. Para insertar una captura basta con guardarla en  img/  con el
+%     nombre exacto de la caja (ej.  img/fig01-endpoint-code.png ) y
+%     recompilar. Extensiones aceptadas: .png, .jpg, .jpeg, .pdf.
+%
+%  3. Todo lo marcado con \todo{...} (en rojo) es texto pendiente que se
+%     redacta al final, cuando se pida.
+%
+%  4. Compilar con pdfLaTeX (Overleaf: New Project -> Upload Project,
+%     subiendo este .tex y la carpeta img/).
+% =====================================================================
+
+\documentclass[10pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage[margin=2.1cm]{geometry}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+
+\setlist{nosep,leftmargin=1.1cm}
+\setlength{\parskip}{0.35em}
+
+% ---------------------------------------------------------------------
+%  Colores y estilos de codigo
+% ---------------------------------------------------------------------
+\definecolor{codebg}{RGB}{248,248,250}
+\definecolor{codeframe}{RGB}{212,212,218}
+\definecolor{codekey}{RGB}{0,84,166}
+\definecolor{codestr}{RGB}{163,21,21}
+\definecolor{codecom}{RGB}{106,115,125}
+\definecolor{phfill}{RGB}{246,246,248}
+\definecolor{phline}{RGB}{170,170,178}
+\definecolor{todored}{RGB}{200,30,30}
+
+\lstdefinestyle{base}{
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{codeframe},
+  basicstyle=\ttfamily\scriptsize,
+  keywordstyle=\color{codekey}\bfseries,
+  stringstyle=\color{codestr},
+  commentstyle=\color{codecom}\itshape,
+  showstringspaces=false,
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  xleftmargin=5pt,
+  xrightmargin=5pt,
+  aboveskip=6pt,
+  belowskip=6pt,
+}
+
+\lstdefinelanguage{yaml}{
+  keywords={true,false,null},
+  sensitive=false,
+  comment=[l]{\#},
+  morestring=[b]',
+  morestring=[b]",
+}
+
+\lstdefinestyle{py}{style=base,language=Python}
+\lstdefinestyle{yml}{style=base,language=yaml}
+\lstdefinestyle{sh}{style=base,language=bash}
+\lstdefinestyle{plain}{style=base,language=}
+\lstset{style=plain}
+
+% ---------------------------------------------------------------------
+%  Texto pendiente
+% ---------------------------------------------------------------------
+\newcommand{\todo}[1]{{\color{todored}\textbf{[TODO:} #1\textbf{]}}}
+
+% ---------------------------------------------------------------------
+%  Marcador de figura: si la imagen existe la inserta, si no dibuja
+%  una caja vacia con la descripcion de la captura que falta.
+% ---------------------------------------------------------------------
+\newcommand{\phbox}[4]{%
+  \begingroup
+  \setlength{\fboxsep}{0pt}%
+  \fcolorbox{phline}{phfill}{%
+    \begin{minipage}[c][#2][c]{\dimexpr#1-2\fboxrule\relax}
+      \centering
+      {\ttfamily\scriptsize\color{phline}[ img/#3 ]}\\[0.7em]
+      \begin{minipage}{0.88\linewidth}
+        \centering\scriptsize\itshape #4
+      \end{minipage}
+    \end{minipage}%
+  }%
+  \endgroup
+}
+
+% #1 ancho  #2 alto de la caja  #3 nombre base del archivo  #4 descripcion
+\newcommand{\shot}[4]{%
+  \IfFileExists{img/#3.png}{\includegraphics[width=#1]{img/#3.png}}{%
+  \IfFileExists{img/#3.jpg}{\includegraphics[width=#1]{img/#3.jpg}}{%
+  \IfFileExists{img/#3.jpeg}{\includegraphics[width=#1]{img/#3.jpeg}}{%
+  \IfFileExists{img/#3.pdf}{\includegraphics[width=#1]{img/#3.pdf}}{%
+  \phbox{#1}{#2}{#3}{#4}}}}}%
+}
+
+% Figura de evidencia completa:
+% #1 ancho  #2 alto caja  #3 archivo  #4 descripcion  #5 caption
+\newcommand{\evidence}[5]{%
+  \begin{figure}[H]
+  \centering
+  \shot{#1}{#2}{#3}{#4}
+  \caption{#5}
+  \label{fig:#3}
+  \end{figure}%
+}
+
+\captionsetup{font=small,labelfont=bf,skip=4pt}
+
+% ---------------------------------------------------------------------
+
+\title{\vspace{-1.4cm}\textbf{Workshop 6}\\[0.2em]
+\large Testing \& CI/CD}
+\author{Ismael Paredes \todo{other group members}\\[0.1em]
+\normalsize Web Applications --- Semester II 2026 --- Prof. Francisco Hidrobo}
+\date{\todo{submission date}}
+
+\begin{document}
+
+\maketitle
+\vspace{-0.8cm}
+
+% =====================================================================
+\section{General Information}
+% =====================================================================
+
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabular}{@{}ll@{\hspace{1.5cm}}ll@{}}
+\toprule
+Group members & Ismael Paredes, \todo{others} & Python & \todo{version} \\
+Course & Web Applications --- Sem. II 2026 & FastAPI & \todo{version} \\
+Workshop & No. 6 --- Testing \& CI/CD & pytest & \todo{version} \\
+Workshop date & October 30, 2026 & Ruff & \todo{version} \\
+OS & Windows 11 Home (10.0.26200) & Hosting & Render (Free) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection*{Submission links}
+
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabularx}{\textwidth}{@{}lX@{}}
+\toprule
+GitHub repository & \url{https://github.com/CipherTuring/Web-Applications} \\
+Pull request & \todo{PR URL} \\
+Actions run --- first passing run on the PR & \todo{run URL} \\
+Actions run --- lint failure & \todo{run URL} \\
+Actions run --- test failure & \todo{run URL} \\
+Actions run --- passing run after fixes & \todo{run URL} \\
+Actions run --- \texttt{main} after merge & \todo{run URL} \\
+Public API URL & \todo{Render URL} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% =====================================================================
+\section{Project and Technology Overview}
+% =====================================================================
+
+\todo{Short description of the API, the stack (FastAPI, Uvicorn, pytest +
+TestClient, Ruff, GitHub Actions, Render) and why the API is self-contained.}
+
+\begin{lstlisting}[style=plain]
+TODO: workshop6/ directory tree
+\end{lstlisting}
+
+% =====================================================================
+\section{Selected API Endpoint}
+% =====================================================================
+
+\todo{Which endpoint was selected (\texttt{GET /api/products}), what it
+returns, and the small change made on the feature branch
+(\texttt{GET /health}).}
+
+\begin{lstlisting}[style=py]
+# TODO: app/main.py
+\end{lstlisting}
+
+\begin{lstlisting}[style=py]
+# TODO: tests/test_main.py
+\end{lstlisting}
+
+% =====================================================================
+\section{CI Workflow}
+% =====================================================================
+
+\subsection{Workflow file}
+
+\begin{lstlisting}[style=yml]
+# TODO: .github/workflows/ci.yml
+\end{lstlisting}
+
+\subsection{Explanation of the checks}
+
+\todo{Triggers (\texttt{pull\_request} and \texttt{push} to \texttt{main}),
+the \texttt{lint} job (Ruff check + format check), the \texttt{test} job
+(pytest), why they are independent jobs, and how the ruleset on
+\texttt{main} turns them into required status checks.}
+
+% =====================================================================
+\section{Chronological Evidence}
+% =====================================================================
+
+% ---------------------------------------------------------------------
+\subsection{Stage 1 --- Local change on a feature branch}
+% ---------------------------------------------------------------------
+
+\evidence{\textwidth}{5cm}{fig01-endpoint-code}{%
+VS Code showing the change on branch \texttt{feature/health-endpoint}:
+the new \texttt{GET /health} endpoint in \texttt{app/main.py} and its test
+in \texttt{tests/test\_main.py} (diff view or both files side by side).}
+{\todo{caption}}
+
+\todo{Explanation of Figure~\ref{fig:fig01-endpoint-code}.}
+
+\evidence{\textwidth}{5cm}{fig02-local-run}{%
+Terminal running \texttt{uvicorn app.main:app --reload} with the request
+log, next to the browser at \texttt{http://127.0.0.1:8000/health}
+showing \texttt{\{"status": "ok"\}}.}
+{\todo{caption}}
+
+\todo{Explanation of Figure~\ref{fig:fig02-local-run}.}
+
+\evidence{\textwidth}{5cm}{fig03-local-checks}{%
+Terminal with the local checks passing: \texttt{ruff check .},
+\texttt{ruff format --check .} and \texttt{pytest -v} with every test
+\texttt{PASSED}.}
+{\todo{caption}}
+
+\todo{Explanation of Figure~\ref{fig:fig03-local-checks}.}
+
+\evidence{\textwidth}{5cm}{fig04-git-push}{%
+Terminal with \texttt{git checkout -b feature/health-endpoint},
+\texttt{git add}, \texttt{git commit} and \texttt{git push -u origin
+feature/health-endpoint}, including the push output.}
+{\todo{caption}}
+
+\todo{Explanation of Figure~\ref{fig:fig04-git-push}.}
+
+% ---------------------------------------------------------------------
+\subsection{Stage 2 --- Pull request and first CI run}
+% ---------------------------------------------------------------------
+
+\evidence{\textwidth}{5.5cm}{fig05-pr-opened}{%
+GitHub pull request page \texttt{feature/health-endpoint} $\rightarrow$
+\texttt{main}: title, description and the checks section with the
+\texttt{lint} and \texttt{test} jobs.}
+{\todo{caption}}
+
+\todo{Explanation of Figure~\ref{fig:fig05-pr-opened}.}
+
+\evidence{\textwidth}{5.5cm}{fig06-actions-pass}{%
+GitHub Actions run summary for the PR: workflow name, triggering event
+and commit, and both jobs (\texttt{lint}, \texttt{test}) in green, with
+one job expanded showing its steps.}
+{\todo{caption}}
+
+\todo{Explanation of Figure~\ref{fig:fig06-actions-pass}.}
+
+\evidence{\textwidth}{5.5cm}{fig07-branch-ruleset}{%
+Repository Settings $\rightarrow$ Rules $\rightarrow$ Rulesets: ruleset
+targeting \texttt{main} with ``Require a pull request'', ``Require status
+checks to pass'' (\texttt{lint}, \texttt{test}) and ``Block force
+pushes'' enabled.}
+{\todo{caption}}
+
+\todo{Explanation of Figure~\ref{fig:fig07-branch-ruleset}.}
+
+% ---------------------------------------------------------------------
+\subsection{Stage 3 --- Intentional failure 1: lint}
+% ---------------------------------------------------------------------
+
+\evidence{\textwidth}{5.5cm}{fig08-lint-fail-checks}{%
+Pull request page after pushing the lint violation: \texttt{lint} job
+failed (red), \texttt{test} job passed, and the merge box showing that
+merging is blocked.}
+{\todo{caption}}
+
+\todo{Explanation of Figure~\ref{fig:fig08-lint-fail-checks}.}
+
+\evidence{\textwidth}{5cm}{fig09-lint-fail-log}{%
+Log of the failed \texttt{lint} job, expanded on the Ruff step: the
+\texttt{F401} error with file, line and the unused import, and the
+non-zero exit code.}
+{\todo{caption}}
+
+\todo{Explanation of Figure~\ref{fig:fig09-lint-fail-log}.}
+
+\evidence{\textwidth}{4.5cm}{fig10-lint-fix-local}{%
+Diff removing the unused import and the terminal with \texttt{ruff check .}
+passing locally before pushing the fix.}
+{\todo{caption}}
+
+\todo{Explanation of Figure~\ref{fig:fig10-lint-fix-local}.}
+
+% ---------------------------------------------------------------------
+\subsection{Stage 4 --- Intentional failure 2: test}
+% ---------------------------------------------------------------------
+
+\evidence{\textwidth}{5.5cm}{fig11-test-fail-checks}{%
+Pull request page after pushing the behaviour change: \texttt{lint}
+passed, \texttt{test} failed, merging blocked.}
+{\todo{caption}}
+
+\todo{Explanation of Figure~\ref{fig:fig11-test-fail-checks}.}
+
+\evidence{\textwidth}{5cm}{fig12-test-fail-log}{%
+Log of the failed \texttt{test} job, expanded on the pytest step: the
+failing test name and the \texttt{AssertionError} with expected vs.\ actual
+value.}
+{\todo{caption}}
+
+\todo{Explanation of Figure~\ref{fig:fig12-test-fail-log}.}
+
+\evidence{\textwidth}{5.5cm}{fig13-fix-pass-run}{%
+GitHub Actions run for the fix commit: both jobs green again.}
+{\todo{caption}}
+
+\todo{Explanation of Figure~\ref{fig:fig13-fix-pass-run}.}
+
+\evidence{\textwidth}{5.5cm}{fig14-pr-commit-history}{%
+Commits tab (or timeline) of the pull request listing every commit in
+order with its check status: pass, lint failure, lint fix, test failure,
+test fix.}
+{\todo{caption}}
+
+\todo{Explanation of Figure~\ref{fig:fig14-pr-commit-history}.}
+
+\subsection*{Failure summary}
+
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabularx}{\textwidth}{@{}lXXX@{}}
+\toprule
+Failure & What was broken & What the log showed & How it was corrected \\
+\midrule
+Lint & \todo{} & \todo{} & \todo{} \\
+Test & \todo{} & \todo{} & \todo{} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ---------------------------------------------------------------------
+\subsection{Stage 5 --- Merge to main}
+% ---------------------------------------------------------------------
+
+\evidence{\textwidth}{5.5cm}{fig15-pr-merged}{%
+Pull request in the \emph{Merged} state, with all checks green and the
+merge commit into \texttt{main}.}
+{\todo{caption}}
+
+\todo{Explanation of Figure~\ref{fig:fig15-pr-merged}.}
+
+\evidence{\textwidth}{5.5cm}{fig16-main-run-pass}{%
+GitHub Actions run triggered by the \texttt{push} event on \texttt{main}
+(the merge commit), with both jobs green.}
+{\todo{caption}}
+
+\todo{Explanation of Figure~\ref{fig:fig16-main-run-pass}.}
+
+% ---------------------------------------------------------------------
+\subsection{Stage 6 --- Deployment}
+% ---------------------------------------------------------------------
+
+\evidence{\textwidth}{5.5cm}{fig17-render-config}{%
+Render Web Service settings: repository and branch \texttt{main}, root
+directory \texttt{workshop6}, build and start commands, Free instance and
+Auto-Deploy set to ``After CI Checks Pass''.}
+{\todo{caption}}
+
+\todo{Explanation of Figure~\ref{fig:fig17-render-config}.}
+
+\evidence{\textwidth}{5.5cm}{fig18-render-deploy-live}{%
+Render Events / deploy log: deploy triggered by the \texttt{main} merge
+commit, build and start output, and the service status \emph{Live}.}
+{\todo{caption}}
+
+\todo{Explanation of Figure~\ref{fig:fig18-render-deploy-live}.}
+
+\evidence{\textwidth}{5cm}{fig19-public-endpoint}{%
+Browser at the public URL \texttt{https://<service>.onrender.com/api/products}
+(and/or \texttt{/health}) returning the JSON response.}
+{\todo{caption}}
+
+\todo{Explanation of Figure~\ref{fig:fig19-public-endpoint}.}
+
+% =====================================================================
+\section{CI vs.\ Continuous Delivery vs.\ Continuous Deployment}
+% =====================================================================
+
+\todo{Definition of each practice and how this pipeline maps to them:
+Actions (CI), always-deployable \texttt{main} (Delivery), Render
+auto-deploy after checks pass (Deployment), and the ruleset as the gate.}
+
+% =====================================================================
+\section{Conclusions and Limitations}
+% =====================================================================
+
+\subsection*{Conclusions}
+\todo{Conclusions.}
+
+\subsection*{Limitations}
+\todo{Limitations.}
+
+\end{document}
