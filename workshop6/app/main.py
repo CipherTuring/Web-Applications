@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI
 
 app = FastAPI(title="Workshop 6 Products API")
