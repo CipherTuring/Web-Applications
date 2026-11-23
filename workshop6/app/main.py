@@ -12,7 +12,7 @@ PRODUCTS = [
 
 @app.get("/health")
 def health():
-    return {"status": "healthy"}
+    return {"status": "ok"}
 
 
 @app.get("/api/products")
