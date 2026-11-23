@@ -10,6 +10,11 @@ PRODUCTS = [
 ]
 
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 @app.get("/api/products")
 def list_products():
     return PRODUCTS
